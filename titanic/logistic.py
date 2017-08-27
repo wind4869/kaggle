@@ -1,26 +1,65 @@
-import math
+import numpy as np
+import pandas as pd
 from sklearn import linear_model
-from pandas import read_csv, DataFrame
 
-train = read_csv('train.csv')
-target = train['Survived']
+__author__ = 'matrix'
 
-data = train
-[data.pop(column) for column in ['PassengerId', 'Survived', 'Name', 'Ticket', 'Cabin', 'Embarked']]
-data['Sex'] = list(map(lambda sex: 0 if sex == 'female' else 1, data['Sex']))
-data['Age'] = list(map(lambda age: 0 if math.isnan(age) else age, data['Age']))
+USEFUL_COLUMNS = [
+    'Pclass',
+    'Sex',
+    'Age',
+    'SibSp',
+    'Parch',
+    'Fare',
+    # 'Embarked'
+]
 
-logistic = linear_model.LogisticRegression()
-logistic.fit(data.values, target)
+CONVERTED_COLUMNS = [
+    'Sex',
+    'Embarked'
+]
 
-test = read_csv('test.csv')
-passenger_ids = test['PassengerId']
-[test.pop(column) for column in ['PassengerId', 'Name', 'Ticket', 'Cabin', 'Embarked']]
-test['Sex'] = list(map(lambda sex: 0 if sex == 'female' else 1, test['Sex']))
-test['Age'] = list(map(lambda age: 0 if math.isnan(age) else age, test['Age']))
-test['Fare'] = list(map(lambda fare: 0 if math.isnan(fare) else fare, test['Fare']))
 
-result = DataFrame()
-result['PassengerId'] = passenger_ids
-result['Survived'] = logistic.predict(test.values)
-result.to_csv('result.csv', index=False)
+def load(filename):
+    data_set = pd.read_csv(filename).fillna(0)
+    data_set['Sex'] = np.where(data_set['Sex'] == 'female', 0, 1)
+    embarked = data_set['Embarked']
+    data_set['Embarked'] = np.where(
+        embarked == 'C', 0,
+        np.where(embarked == 'Q', 1, 2))
+    return data_set
+
+
+def dump(filename, result):
+    result.to_csv(filename, index=False)
+
+
+def one_hot_encoding(data_set):
+    return pd.get_dummies(data_set, columns=CONVERTED_COLUMNS)
+
+
+def train():
+    train_set = load('train.csv')
+
+    y = train_set['Survived']
+    X = train_set[USEFUL_COLUMNS]
+
+    model = linear_model.LogisticRegression()
+    model.fit(X, y)
+    return model
+
+
+def predict(model):
+    test_set = load('test.csv')
+
+    passenger_ids = test_set['PassengerId']
+    X = test_set[USEFUL_COLUMNS]
+
+    result = pd.DataFrame()
+    result['PassengerId'] = passenger_ids
+    result['Survived'] = model.predict(X)
+    dump('result.csv', result)
+
+
+if __name__ == '__main__':
+    predict(train())
