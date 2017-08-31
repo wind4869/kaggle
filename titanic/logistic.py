@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn import linear_model
+from sklearn import model_selection
 
 __author__ = 'matrix'
 
@@ -9,24 +10,27 @@ USEFUL_COLUMNS = [
     'Sex',
     'Age',
     'SibSp',
-    'Parch',
-    'Fare',
-    # 'Embarked'
+    'Parch'
 ]
 
 CONVERTED_COLUMNS = [
+    'Pclass',
     'Sex',
-    'Embarked'
+    'Age',
+    'SibSp',
+    'Parch'
 ]
 
 
 def load(filename):
-    data_set = pd.read_csv(filename).fillna(0)
+    data_set = pd.read_csv(filename)
+
     data_set['Sex'] = np.where(data_set['Sex'] == 'female', 0, 1)
-    embarked = data_set['Embarked']
-    data_set['Embarked'] = np.where(
-        embarked == 'C', 0,
-        np.where(embarked == 'Q', 1, 2))
+    data_set['Age'] = data_set['Age'].fillna(data_set['Age'].mean())
+    data_set['Age'] = np.where(data_set['Age'] < 20, 0, 1)
+
+    one_hot_encoding(data_set)
+
     return data_set
 
 
@@ -46,6 +50,7 @@ def train():
 
     model = linear_model.LogisticRegression()
     model.fit(X, y)
+
     return model
 
 
@@ -58,8 +63,20 @@ def predict(model):
     result = pd.DataFrame()
     result['PassengerId'] = passenger_ids
     result['Survived'] = model.predict(X)
+
     dump('result.csv', result)
 
 
+def cross_validate():
+    train_set = load('train.csv')
+
+    y = train_set['Survived']
+    X = train_set[USEFUL_COLUMNS]
+
+    model = linear_model.LogisticRegression()
+    print(model_selection.cross_val_score(model, X, y))
+
+
 if __name__ == '__main__':
+    cross_validate()
     predict(train())
