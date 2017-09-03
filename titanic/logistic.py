@@ -17,7 +17,8 @@ USEFUL_COLUMNS = [
     'Sex',
     'Age',
     'SibSp',
-    'Parch'
+    'Parch',
+    'Cabin'
 ]
 
 CONVERTED_COLUMNS = [
@@ -25,7 +26,8 @@ CONVERTED_COLUMNS = [
     'Sex',
     'Age',
     'SibSp',
-    'Parch'
+    'Parch',
+    'Cabin'
 ]
 
 
@@ -34,7 +36,11 @@ def load(filename):
 
     data_set['Sex'] = np.where(data_set['Sex'] == 'female', 0, 1)
     data_set['Age'] = data_set['Age'].fillna(data_set['Age'].mean())
-    data_set['Age'] = np.where(data_set['Age'] < 20, 0, 1)
+    data_set['Age'] = np.where(
+        data_set['Age'] < 10, 0,
+        np.where(data_set['Age'] < 60, 1, 2)
+    )
+    data_set['Cabin'] = np.where(data_set['Cabin'].isnull(), 0, 1)
 
     one_hot_encoding(data_set)
 
